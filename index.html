@@ -1,0 +1,171 @@
+</html>
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon shortcut" href="/coolbackground2/Logo.png">
+    <link rel="apple-touch-icon" href="/coolbackground2/Logo.png">
+    <title>coolbackground(2)</title>
+    <style>
+        body {
+            margin: 0%;
+        }
+
+        input {
+            position: absolute;
+            bottom: 10%;
+            left: 50%;
+            width: 30%;
+            transform: translateX(-50%);
+            -webkit-appearance: none;
+            appearance: none;
+            height: 3px;
+            margin: 0 10px;
+            border-radius: 5px;
+            background: rgb(255, 255, 255);
+            border-radius: 5px;
+            background-image: linear-gradient(to bottom, rgba(0, 0, 0, 0.8), rgba(29, 29, 29, 0.8), rgba(0, 0, 0, 0.8));
+            background-size: 0% 100%;
+            background-repeat: no-repeat;
+            outline: none;
+            opacity: 0.5;
+            transition: opacity  .5s;
+            transition: height  .5s;
+            overflow: visible;
+        }
+        .range:hover,.range:focus {
+            opacity: 1;
+            height: 10px;
+        }
+
+        .range::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 0px;
+            height: 0px;
+            border: 0;
+            border-radius: 50%;
+            background: radial-gradient( rgba(59, 59, 59, 0.7), rgba(0, 0, 0, 0.7));
+            cursor: pointer;
+            transition: all .5s;
+        }
+
+        .range:hover::-webkit-slider-thumb,
+        .range:focus::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 16px;
+            height: 16px;
+            border: 0;
+            border-radius: 50%;
+            background: radial-gradient( rgb(77, 77, 77), rgba(0, 0, 0));
+            cursor: pointer;
+        }
+    </style>
+</head>
+
+<body>
+    <canvas id="canvas" width="3840" height="2160" style="width: 100%;height: 100%;display: block;"></canvas>
+    <input type="range" oninput="changenumPoints()" id="range" value="14" min="0" max="100" class="range">
+    <script src="delaunay.js"></script>
+    <script>
+        var points = [];
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+
+        var numPoints = 700
+        const pointsize = 0;
+        const Drawvertices = true;
+        const DrawEdges = true;
+        const verticesfont = '16px Arial';
+        const strokeStyle = 'rgb(255 125 0)';
+        const ZoomIn = 1;
+        var range = document.getElementById("range");
+        //Generate random points
+        function changenumPoints(){
+            debugger
+            range.style.backgroundSize=range.value+"% 100%";
+            numPoints=((Number)(range.value))*50+50;
+            points = [];
+            start()
+        }
+        function start() {
+            ctx.strokeStyle = strokeStyle;
+            ctx.font = verticesfont;
+            points.push([0, 0]);
+            ctx.beginPath();
+            ctx.arc(0, 0, pointsize, 0, Math.PI * 2);
+            ctx.fill();
+            points.push([canvas.width, 0]);
+            ctx.beginPath();
+            ctx.arc(canvas.width, 0, pointsize, 0, Math.PI * 2);
+            ctx.fill();
+            points.push([0, canvas.height]);
+            ctx.beginPath();
+            ctx.arc(0, canvas.height, pointsize, 0, Math.PI * 2);
+            ctx.fill();
+            points.push([canvas.width, canvas.height]);
+            ctx.beginPath();
+            ctx.arc(canvas.width, canvas.height, pointsize, 0, Math.PI * 2);
+            ctx.fill();
+            for (let i = 0; i < numPoints; i++) {
+                var x = Math.random() * canvas.width;
+                var y = Math.random() * canvas.height;
+
+                ctx.beginPath();
+                ctx.arc(x, y, pointsize, 0, Math.PI * 2);
+                ctx.fill();
+                points.push([x, y]);
+                if (Drawvertices) {
+                    ctx.fillText(`(${x.toFixed(2)}, ${y.toFixed(2)})`, x + 15, y - 5);
+                }
+            }
+            var delaunay = new Delaunay(points);
+            var output = delaunay.triangulate();
+            for (let index = 0; index < output.length; index += 3) {
+                ctx.beginPath();
+                ctx.moveTo(output[index][0], output[index][1]);
+                ctx.lineTo(output[index + 1][0], output[index + 1][1]);
+                ctx.lineTo(output[index + 2][0], output[index + 2][1]);
+                ctx.closePath();
+                if (DrawEdges) {
+                    ctx.stroke();
+                }
+                var d = getDistance(output[index], output[index + 1]);
+                const gradient = ctx.createRadialGradient(
+                    output[index][0], output[index][1], 0,
+                    output[index + 1][0], output[index + 1][1], d * 1.00028
+                );
+                gradient.addColorStop(0, getRandomRedColor(output[index]));
+                gradient.addColorStop(0.5, getRandomOrangeColor(output[index]));
+                ctx.fillStyle = gradient;
+                ctx.fill();
+            }
+            console.log("triangles: " + output.length / 3)
+        }
+        function getRandomRedColor(sed) {
+            var seddeg = 1 - (getDistance(sed, [canvas.width / 2, canvas.height / 2]) / getDistance([0, 0], [canvas.width / 2, canvas.height / 2])) / ZoomIn
+            const red = Math.floor(255 - seddeg * 20).toString(16).padStart(2, '0');
+            const green = Math.floor(seddeg * 125).toString(16).padStart(2, '0');
+            const blue = '00'
+            return `#${red}${green}${blue}`;
+        }
+        function getRandomOrangeColor(sed) {
+            var seddeg = 1 - (getDistance(sed, [canvas.width / 2, canvas.height / 2]) / getDistance([0, 0], [canvas.width / 2, canvas.height / 2])) / ZoomIn
+            const red = Math.floor(255).toString(16).padStart(2, '0');
+            const green = Math.floor(70 + seddeg * 185).toString(16).padStart(2, '0');
+            const blue = '00';
+            return `#${red}${green}${blue}`;
+        }
+        function getDistance(p1, p2) {
+            const dx = p2[0] - p1[0];
+            const dy = p2[1] - p1[1];
+            return Math.sqrt(dx * dx + dy * dy);
+        }
+        changenumPoints()
+    </script>
+</body>
+
+</html>
